@@ -28,6 +28,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.Comparator;
+import java.util.stream.Collectors;
 
 import static com.axis.system.jenkins.plugins.downstream.tree.TreeLaminator.layoutTree;
 
@@ -50,13 +53,30 @@ public class BuildFlowAction implements Action {
   private static final ChildrenFunction getChildrenFunc() {
     final Queue.Item[] items = Queue.getInstance().getItems();
     return build -> {
-      List<Object> result = new ArrayList<>();
+      ArrayList<ArrayList<Object>> listOLists = new ArrayList<ArrayList<Object>>();
+      List<Object> results = new ArrayList<>();
       if (build instanceof Run) {
-        result.addAll(BuildCache.getCache().getDownstreamBuilds((Run) build));
-        result.addAll(BuildCache.getDownstreamQueueItems(items, (Run) build));
+        results.addAll(BuildCache.getCache().getDownstreamBuilds((Run) build));
+        results.addAll(BuildCache.getDownstreamQueueItems(items, (Run) build));
       }
-      return result;
+      for (Object result : results) {
+        listOLists.add(buildTimeStart(result));
+      }
+      listOLists.sort(Comparator.comparing(x -> x.get(0).toString()));
+      results = new ArrayList<>();
+      for (int i = 0; i < listOLists.size(); i++) {
+        results.add(listOLists.get(i).get(1));
+      }
+      return results;
     };
+  }
+
+  private static ArrayList buildTimeStart(Object data) {
+    ArrayList<Object> timeStampBuild = new ArrayList<>();
+    long timeStamp = (((Run) data).getStartTimeInMillis());
+    timeStampBuild.add(timeStamp);
+    timeStampBuild.add(data);
+    return timeStampBuild;
   }
 
   public Run getRootUpstreamBuild() {
@@ -181,7 +201,7 @@ public class BuildFlowAction implements Action {
   private static Set<Object> getAllDownstreamItems(Run current) {
     Set<Object> resultSet = new HashSet<>();
     addAllDownstreamItems(resultSet, current, getChildrenFunc());
-    return resultSet;
+    return resultSet.stream().collect(Collectors.toCollection(TreeSet::new));
   }
 
   private static void addAllDownstreamItems(

@@ -66,6 +66,8 @@ if (options.flattenView) {
       getJob(data)
     }.toSet()
 
+    //matrix.get().each { row -> System.out.print(row)}
+
     NameNormalizer nameNormalizer = getNameNormalizer(jobs)
 
     matrix.get().each { row ->
